@@ -34,7 +34,8 @@ class ProductViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         if self.action == 'list':
-            return queryset.filter(is_available=True)
+            queryset = queryset.filter(is_available=True)
+            return self._apply_product_filters(queryset)
 
         if self.action == 'retrieve':
             if not user.is_authenticated:
@@ -46,6 +47,40 @@ class ProductViewSet(viewsets.ModelViewSet):
             return queryset.filter(
                 Q(is_available=True) | Q(seller=user)
             )
+
+        return queryset
+
+    def _apply_product_filters(self, queryset):
+        search = self.request.query_params.get('search')
+        category = self.request.query_params.get('category')
+        min_price = self.request.query_params.get('min_price')
+        max_price = self.request.query_params.get('max_price')
+        ordering = self.request.query_params.get('ordering')
+
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search)
+                | Q(description__icontains=search)
+            )
+
+        if category:
+            queryset = queryset.filter(category_id=category)
+
+        if min_price:
+            queryset = queryset.filter(price__gte=min_price)
+
+        if max_price:
+            queryset = queryset.filter(price__lte=max_price)
+
+        allowed_ordering_fields = {
+            'price',
+            '-price',
+            'created_at',
+            '-created_at',
+        }
+
+        if ordering in allowed_ordering_fields:
+            queryset = queryset.order_by(ordering)
 
         return queryset
 

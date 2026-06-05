@@ -53,6 +53,29 @@ class ProductApiTests(APITestCase):
             seller=self.seller,
         )
 
+        self.wood_category = Category.objects.create(
+            name='Wood',
+            description='Handmade wooden products',
+        )
+
+        self.wooden_spoon = Product.objects.create(
+            title='Wooden spoon',
+            description='Handmade spoon from oak.',
+            price='500.00',
+            quantity=10,
+            category=self.wood_category,
+            seller=self.seller,
+        )
+
+        self.expensiv_vase = Product.objects.create(
+            title='Ceramic vase',
+            description='Large handmade ceramic vase.',
+            price='3000.00',
+            quantity=2,
+            category=self.category,
+            seller=self.seller,
+        )
+
     def test_anonymous_user_can_view_products(self):
         url = reverse('product-list')
 
@@ -77,7 +100,7 @@ class ProductApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        product = Product.objects.get(title='Wooden spoon')
+        product = Product.objects.get(id=response.data['id'])
 
         self.assertEqual(product.seller, self.seller)
         self.assertEqual(product.category, self.category)
@@ -131,3 +154,46 @@ class ProductApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.product.refresh_from_db()
         self.assertEqual(self.product.title, 'Updated ceramic mug')
+
+    def test_product_list_can_be_filtered_by_search(self):
+        url = reverse('product-list')
+
+        response = self.client.get(url, {'search': 'spoon'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['title'], 'Wooden spoon')
+
+    def test_product_list_can_be_filtered_by_category(self):
+        url = reverse('product-list')
+
+        response = self.client.get(url, {'category': self.wood_category.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['title'], 'Wooden spoon')
+
+    def test_product_list_can_be_filtered_by_price_range(self):
+        url = reverse('product-list')
+
+        response = self.client.get(
+            url,
+            {
+                'min_price': '1000',
+                'max_price': '2000',
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['title'], 'Ceramic mug')
+
+    def test_product_list_can_be_ordered_by_price_desc(self):
+        url = reverse('product-list')
+
+        response = self.client.get(url, {'ordering': '-price'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data[0]['title'], 'Ceramic vase')
+        self.assertEqual(response.data[1]['title'], 'Ceramic mug')
+        self.assertEqual(response.data[2]['title'], 'Wooden spoon')
