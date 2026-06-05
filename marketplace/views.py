@@ -9,6 +9,7 @@ from .permissions import IsOwnerOrAdmin, IsSeller, IsBuyer
 from .serializers import CategorySerializer, ProductSerializer, RegisterSerializer, OrderSerializer
 from .services import OrderCreationError, create_order
 
+from .pagination import ProductCursorPagination
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -24,6 +25,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
 class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
+    pagination_class = ProductCursorPagination
 
     def get_queryset(self):
         queryset = Product.objects.select_related(
@@ -55,7 +57,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         category = self.request.query_params.get('category')
         min_price = self.request.query_params.get('min_price')
         max_price = self.request.query_params.get('max_price')
-        ordering = self.request.query_params.get('ordering')
 
         if search:
             queryset = queryset.filter(
@@ -71,16 +72,6 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         if max_price:
             queryset = queryset.filter(price__lte=max_price)
-
-        allowed_ordering_fields = {
-            'price',
-            '-price',
-            'created_at',
-            '-created_at',
-        }
-
-        if ordering in allowed_ordering_fields:
-            queryset = queryset.order_by(ordering)
 
         return queryset
 

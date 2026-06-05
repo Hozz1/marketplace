@@ -160,18 +160,22 @@ class ProductApiTests(APITestCase):
 
         response = self.client.get(url, {'search': 'spoon'})
 
+        results = response.data['results']
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['title'], 'Wooden spoon')
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['title'], 'Wooden spoon')
 
     def test_product_list_can_be_filtered_by_category(self):
         url = reverse('product-list')
 
         response = self.client.get(url, {'category': self.wood_category.id})
 
+        results = response.data['results']
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['title'], 'Wooden spoon')
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['title'], 'Wooden spoon')
 
     def test_product_list_can_be_filtered_by_price_range(self):
         url = reverse('product-list')
@@ -184,16 +188,20 @@ class ProductApiTests(APITestCase):
             },
         )
 
+        results = response.data['results']
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['title'], 'Ceramic mug')
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['title'], 'Ceramic mug')
 
     def test_product_list_can_be_ordered_by_price_desc(self):
         url = reverse('product-list')
 
         response = self.client.get(url, {'ordering': '-price'})
 
+        results = response.data['results']
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data[0]['title'], 'Ceramic vase')
-        self.assertEqual(response.data[1]['title'], 'Ceramic mug')
-        self.assertEqual(response.data[2]['title'], 'Wooden spoon')
+        self.assertEqual(results[0]['title'], 'Ceramic vase')
+        self.assertEqual(results[1]['title'], 'Ceramic mug')
+        self.assertEqual(results[2]['title'], 'Wooden spoon')
