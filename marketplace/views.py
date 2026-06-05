@@ -11,18 +11,115 @@ from .services import OrderCreationError, create_order
 
 from .pagination import ProductCursorPagination
 
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiTypes,
+    extend_schema,
+    extend_schema_view,
+)
+
+PRODUCT_LIST_PARAMETERS = [
+    OpenApiParameter(
+        name='search',
+        type=OpenApiTypes.STR,
+        location=OpenApiParameter.QUERY,
+        description='Search by product title or description.',
+    ),
+    OpenApiParameter(
+        name='category',
+        type=OpenApiTypes.INT,
+        location=OpenApiParameter.QUERY,
+        description='Filter products by category id.',
+    ),
+    OpenApiParameter(
+        name='min_price',
+        type=OpenApiTypes.DECIMAL,
+        location=OpenApiParameter.QUERY,
+        description='Filter products with price greater than or equal to this value.',
+    ),
+    OpenApiParameter(
+        name='max_price',
+        type=OpenApiTypes.DECIMAL,
+        location=OpenApiParameter.QUERY,
+        description='Filter products with price less than or equal to this value.',
+    ),
+    OpenApiParameter(
+        name='ordering',
+        type=OpenApiTypes.STR,
+        location=OpenApiParameter.QUERY,
+        description='Order products by price, -price, created_at or -created_at.',
+    ),
+]
+
+@extend_schema(
+    tags=['Auth'],
+    summary='Register a new user',
+    description=(
+        'Creates a new user account and related UserProfile. '
+        'Public registration allows only buyer and seller roles.'
+    ),
+    request=RegisterSerializer,
+    responses={201: RegisterSerializer},
+)
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = (permissions.AllowAny,)
 
-
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Categories'],
+        summary='Get category list',
+        description='Returns a list of product categories.',
+    ),
+    retrieve=extend_schema(
+        tags=['Categories'],
+        summary='Get category details',
+        description='Returns details of a single category.',
+    ),
+)
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = (permissions.AllowAny,)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Products'],
+        summary='Get product list',
+        description=(
+            'Returns available products with cursor pagination. '
+            'Supports search, category filter, price range filter and ordering.'
+        ),
+        parameters=PRODUCT_LIST_PARAMETERS,
+    ),
+    retrieve=extend_schema(
+        tags=['Products'],
+        summary='Get product details',
+        description='Returns details of a single product.',
+    ),
+    create=extend_schema(
+        tags=['Products'],
+        summary='Create product',
+        description='Creates a product. Available only for users with seller role.',
+    ),
+    update=extend_schema(
+        tags=['Products'],
+        summary='Update product',
+        description='Fully updates a product. Available only for owner or admin.',
+    ),
+    partial_update=extend_schema(
+        tags=['Products'],
+        summary='Partially update product',
+        description='Partially updates a product. Available only for owner or admin.',
+    ),
+    destroy=extend_schema(
+        tags=['Products'],
+        summary='Delete product',
+        description='Deletes a product. Available only for owner or admin.',
+    ),
+)
 class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     pagination_class = ProductCursorPagination
@@ -107,6 +204,31 @@ class ProductViewSet(viewsets.ModelViewSet):
         )
 
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Orders'],
+        summary='Get order list',
+        description=(
+            'Returns user orders. Admin users can see all orders; '
+            'regular users can see only their own orders.'
+        ),
+    ),
+    retrieve=extend_schema(
+        tags=['Orders'],
+        summary='Get order details',
+        description='Returns details of a single order available to the current user.',
+    ),
+    create=extend_schema(
+        tags=['Orders'],
+        summary='Create order',
+        description=(
+            'Creates an order for the authenticated buyer. '
+            'The backend calculates total_price and decreases product quantity.'
+        ),
+        request=OrderSerializer,
+        responses={201: OrderSerializer},
+    ),
+)
 class OrderViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,

@@ -47,6 +47,7 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'marketplace',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -131,4 +132,16 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Handmade Marketplace API',
+    'DESCRIPTION': (
+        'Backend API for a handmade products marketplace. '
+        'Includes JWT authentication, role-based permissions, '
+        'products, orders, filtering, cursor pagination and tests.'
+    ),
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }
