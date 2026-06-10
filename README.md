@@ -262,6 +262,96 @@ http://127.0.0.1:8000/api/v1/
 http://127.0.0.1:8000/admin/
 ```
 
+## Запуск через Docker
+
+Проект можно запустить через Docker Compose. В этом режиме поднимаются два контейнера:
+
+* `backend` — Django / DRF приложение;
+* `db` — PostgreSQL база данных.
+
+### 1. Создать файл `.env.docker`
+
+В корне проекта создать файл `.env.docker` на основе `.env.docker.example`.
+
+Пример:
+
+```env
+SECRET_KEY=your-docker-secret-key
+DEBUG=True
+ALLOWED_HOSTS=127.0.0.1,localhost,0.0.0.0
+
+DATABASE_URL=postgres://marketplace_user:marketplace_password@db:5432/handmade_marketplace_db
+```
+
+Важно: в Docker-окружении в `DATABASE_URL` используется хост `db`, потому что PostgreSQL запускается в отдельном контейнере с таким именем.
+
+Файл `.env.docker` не должен попадать в Git.
+
+### 2. Собрать и запустить контейнеры
+
+```bash
+docker compose up --build
+```
+
+После запуска backend будет доступен по адресу:
+
+```text
+http://127.0.0.1:8000/
+```
+
+API:
+
+```text
+http://127.0.0.1:8000/api/v1/
+```
+
+Swagger-документация:
+
+```text
+http://127.0.0.1:8000/api/docs/
+```
+
+Django Admin:
+
+```text
+http://127.0.0.1:8000/admin/
+```
+
+### 3. Применить миграции внутри контейнера
+
+В отдельном терминале выполнить:
+
+```bash
+docker compose exec backend python manage.py migrate
+```
+
+### 4. Создать суперпользователя
+
+```bash
+docker compose exec backend python manage.py createsuperuser
+```
+
+### 5. Запустить тесты внутри контейнера
+
+```bash
+docker compose exec backend python manage.py test
+```
+
+### 6. Остановить контейнеры
+
+```bash
+docker compose down
+```
+
+### 7. Остановить контейнеры и удалить Docker-базу данных
+
+```bash
+docker compose down -v
+```
+
+Команда с флагом `-v` удаляет volume PostgreSQL, поэтому все данные из Docker-базы будут потеряны.
+
+
 ## Запуск тестов
 
 ```bash
