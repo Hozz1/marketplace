@@ -254,7 +254,7 @@ class OrderViewSet(
 
     def get_permissions(self):
         if self.action == 'create':
-            return(IsBuyer(),)
+            return (IsBuyer(),)
 
         return (permissions.IsAuthenticated(),)
 

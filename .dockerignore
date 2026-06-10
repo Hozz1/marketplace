@@ -1,3 +1,7 @@
+# Git
+.git
+.gitignore
+
 # Virtual environment
 .venv/
 venv/
@@ -8,25 +12,25 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Django
+# Local environment variables
+.env
+
+# Local databases and media
 db.sqlite3
 media/
 staticfiles/
-
-# Environment variables
-.env
 
 # IDE
 .idea/
 .vscode/
 
-# OS files
-.DS_Store
-Thumbs.db
-
-# Test / coverage
+# Tests / coverage
 .coverage
 htmlcov/
 .pytest_cache/
+
+# OS files
+.DS_Store
+Thumbs.db
 
 .env.docker
