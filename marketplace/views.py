@@ -11,6 +11,8 @@ from .services import OrderCreationError, create_order
 
 from .pagination import ProductCursorPagination
 
+from .roles import is_admin_user
+
 from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiTypes,
@@ -140,7 +142,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             if not user.is_authenticated:
                 return queryset.filter(is_available=True)
 
-            if self._is_admin(user):
+            if is_admin_user(user):
                 return queryset
 
             return queryset.filter(
@@ -196,13 +198,6 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         serializer.save(seller=user)
 
-    @staticmethod
-    def _is_admin(user):
-        return (
-            hasattr(user, 'profile')
-            and user.profile.role == UserProfile.Role.ADMIN
-        )
-
 
 @extend_schema_view(
     list=extend_schema(
@@ -247,7 +242,7 @@ class OrderViewSet(
         if not user.is_authenticated:
             return Order.objects.none()
 
-        if self._is_admin(user):
+        if is_admin_user(user):
             return queryset
 
         return queryset.filter(buyer=user)
@@ -276,11 +271,4 @@ class OrderViewSet(
         return Response(
             response_serializer.data,
             status=status.HTTP_201_CREATED,
-        )
-
-    @staticmethod
-    def _is_admin(user):
-        return (
-            hasattr(user, 'profile')
-            and user.profile.role == UserProfile.Role.ADMIN
         )
