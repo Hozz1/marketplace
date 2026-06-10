@@ -1,5 +1,7 @@
 # Handmade Marketplace Backend
 
+![Django Tests](https://github.com/Hozz1/marketplace/actions/workflows/tests.yml/badge.svg)
+
 Backend API для учебного pet-проекта маркетплейса товаров ручной работы.
 
 Проект разработан на Django и Django REST Framework. Основная цель проекта — отработать backend-разработку на практике: проектирование моделей, работу с ролями пользователей, JWT-аутентификацию, права доступа, бизнес-логику заказов, PostgreSQL и автоматические API-тесты.
