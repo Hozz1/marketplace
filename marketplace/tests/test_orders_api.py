@@ -193,3 +193,39 @@ class OrderApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
+
+    def test_buyer_cannot_create_order_with_zero_quantity(self):
+        url = reverse('order-list')
+        payload = {
+            'product': self.product.id,
+            'quantity': 0,
+        }
+
+        self.client.force_authenticate(user=self.buyer)
+        response = self.client.post(url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Order.objects.count(), 0)
+
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.quantity, 5)
+
+    def test_buyer_cannot_order_unavailable_product(self):
+        self.product.is_available = False
+        self.product.save(update_fields=('is_available',))
+
+        url = reverse('order-list')
+        payload = {
+            'product': self.product.id,
+            'quantity': 1,
+        }
+
+        self.client.force_authenticate(user=self.buyer)
+        response = self.client.post(url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Order.objects.count(), 0)
+
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.quantity, 5)
+        self.assertFalse(self.product.is_available)

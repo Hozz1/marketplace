@@ -205,3 +205,36 @@ class ProductApiTests(APITestCase):
         self.assertEqual(results[0]['title'], 'Ceramic vase')
         self.assertEqual(results[1]['title'], 'Ceramic mug')
         self.assertEqual(results[2]['title'], 'Wooden spoon')
+
+    def test_seller_cannot_create_product_with_zero_price(self):
+        url = reverse('product-list')
+        payload = {
+            'title': 'Invalid product',
+            'description': 'Product with invalid price.',
+            'price': '0.00',
+            'quantity': 5,
+            'category': self.category.id,
+        }
+
+        self.client.force_authenticate(user=self.seller)
+        response = self.client.post(url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(Product.objects.filter(title='Invalid product').exists())
+
+    def test_seller_cannot_create_available_product_with_zero_quantity(self):
+        url = reverse('product-list')
+        payload = {
+            'title': 'Empty stock product',
+            'description': 'Product without stock.',
+            'price': '500.00',
+            'quantity': 0,
+            'category': self.category.id,
+            'is_available': True,
+        }
+
+        self.client.force_authenticate(user=self.seller)
+        response = self.client.post(url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(Product.objects.filter(title='Empty stock product').exists())
