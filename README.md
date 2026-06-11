@@ -2,61 +2,61 @@
 
 ![Django Tests](https://github.com/Hozz1/marketplace/actions/workflows/tests.yml/badge.svg)
 
-Backend API для учебного pet-проекта маркетплейса товаров ручной работы.
+Backend API for a handmade products marketplace built with Django REST Framework.
 
-Проект разработан на Django и Django REST Framework. Основная цель проекта — отработать backend-разработку на практике: проектирование моделей, работу с ролями пользователей, JWT-аутентификацию, права доступа, бизнес-логику заказов, PostgreSQL и автоматические API-тесты.
+The project demonstrates practical backend development skills: REST API design, JWT authentication, role-based permissions, PostgreSQL integration, service-layer business logic, cursor pagination, filtering, Swagger/OpenAPI documentation, Docker-based local development, and automated testing with GitHub Actions.
 
-## Стек технологий
+## Tech Stack
 
 * Python
 * Django
 * Django REST Framework
 * PostgreSQL
 * Simple JWT
-* Django Admin
 * django-environ
-* unittest / DRF APITestCase
+* drf-spectacular
+* Docker
+* Docker Compose
+* GitHub Actions
+* DRF APITestCase / Django test framework
 
-## Основные возможности
+## Key Features
 
-* Регистрация пользователей.
-* Роли пользователей:
+* User registration with role-based profiles.
+* JWT authentication with access and refresh tokens.
+* User roles:
 
   * buyer;
   * seller;
   * admin.
-* JWT-аутентификация.
-* Просмотр категорий.
-* Просмотр списка товаров.
-* Просмотр одного товара.
-* Создание товара продавцом.
-* Редактирование и удаление товара только владельцем или администратором.
-* Поиск товаров по названию и описанию.
-* Фильтрация товаров по категории и диапазону цены.
-* Сортировка товаров по цене и дате создания.
-* Cursor pagination для списка товаров.
-* Создание заказа покупателем.
-* Автоматический расчёт итоговой стоимости заказа.
-* Автоматическое уменьшение количества товара после заказа.
-* Автоматическое скрытие товара, если его количество стало равно нулю.
-* Просмотр пользователем только своих заказов.
-* Просмотр всех заказов администратором.
-* Swagger / OpenAPI документация.
-* Docker и Docker Compose для локального запуска.
-* GitHub Actions CI для автоматического запуска тестов.
-* Автоматические API-тесты, включая негативные сценарии.
+* Product catalog with categories.
+* Product creation and management by sellers.
+* Owner/admin permissions for product updates and deletion.
+* Product search by title and description.
+* Product filtering by category and price range.
+* Product ordering by price and creation date.
+* Cursor pagination for product listings.
+* Order creation by buyers.
+* Backend-side order total calculation.
+* Automatic product stock reduction after order creation.
+* Automatic product availability update when stock reaches zero.
+* User-specific order visibility.
+* Admin access to all orders.
+* Swagger/OpenAPI documentation.
+* Docker and Docker Compose setup.
+* GitHub Actions CI pipeline.
+* Automated API tests, including negative scenarios.
 
-
-## Архитектура проекта
-
-Основная логика приложения находится в приложении `marketplace`.
+## Project Structure
 
 ```text
 marketplace/
 ├── admin.py
 ├── apps.py
 ├── models.py
+├── pagination.py
 ├── permissions.py
+├── roles.py
 ├── serializers.py
 ├── services.py
 ├── urls.py
@@ -67,27 +67,33 @@ marketplace/
     └── test_orders_api.py
 ```
 
-### Основные слои
+## Architecture Overview
 
-* `models.py` — описание структуры данных.
-* `serializers.py` — преобразование данных в JSON и валидация входных данных.
-* `permissions.py` — проверка прав доступа.
-* `views.py` — обработка HTTP-запросов.
-* `services.py` — бизнес-логика создания заказа.
-* `tests/` — автоматические API-тесты.
+The project follows a layered structure:
 
-## Модели
+* `models.py` — database models and relationships.
+* `serializers.py` — input validation and JSON serialization.
+* `permissions.py` — API access rules.
+* `roles.py` — reusable role-checking helpers.
+* `pagination.py` — cursor pagination configuration for products.
+* `views.py` — HTTP request handling and API endpoints.
+* `services.py` — business logic for order creation.
+* `tests/` — automated API tests.
+
+The order creation logic is intentionally moved into the service layer. This keeps the view layer focused on HTTP handling, while business rules such as stock validation, price calculation, database locking and order creation remain isolated and easier to test.
+
+## Models
 
 ### UserProfile
 
-Расширяет стандартную модель пользователя Django через связь один к одному.
+Extends Django's default `User` model through a one-to-one relationship.
 
-Поля:
+Fields:
 
 * `user`
 * `role`
 
-Доступные роли:
+Available roles:
 
 * `buyer`
 * `seller`
@@ -95,18 +101,18 @@ marketplace/
 
 ### Category
 
-Категория товара.
+Represents a product category.
 
-Поля:
+Fields:
 
 * `name`
 * `description`
 
 ### Product
 
-Товар маркетплейса.
+Represents a marketplace product.
 
-Поля:
+Fields:
 
 * `title`
 * `description`
@@ -121,9 +127,9 @@ marketplace/
 
 ### Order
 
-Заказ пользователя.
+Represents a customer order.
 
-Поля:
+Fields:
 
 * `buyer`
 * `product`
@@ -132,22 +138,43 @@ marketplace/
 * `status`
 * `created_at`
 
-## Права доступа
+## Permissions
 
-| Действие                     | Аноним | Buyer | Seller | Admin |
-| ---------------------------- | -----: | ----: | -----: | ----: |
-| Просмотр категорий           |     Да |    Да |     Да |    Да |
-| Просмотр товаров             |     Да |    Да |     Да |    Да |
-| Создание товара              |    Нет |   Нет |     Да |    Да |
-| Редактирование своего товара |    Нет |   Нет |     Да |    Да |
-| Редактирование чужого товара |    Нет |   Нет |    Нет |    Да |
-| Создание заказа              |    Нет |    Да |    Нет |   Нет |
-| Просмотр своих заказов       |    Нет |    Да |     Да |    Да |
-| Просмотр всех заказов        |    Нет |   Нет |    Нет |    Да |
+| Action                          | Anonymous | Buyer | Seller | Admin |
+| ------------------------------- | --------: | ----: | -----: | ----: |
+| View categories                 |       Yes |   Yes |    Yes |   Yes |
+| View products                   |       Yes |   Yes |    Yes |   Yes |
+| Create product                  |        No |    No |    Yes |    No |
+| Update own product              |        No |    No |    Yes |   Yes |
+| Update another seller's product |        No |    No |     No |   Yes |
+| Delete own product              |        No |    No |    Yes |   Yes |
+| Create order                    |        No |   Yes |     No |    No |
+| View own orders                 |        No |   Yes |    Yes |   Yes |
+| View all orders                 |        No |    No |     No |   Yes |
 
-## API endpoints
+## API Documentation
 
-Базовый префикс API:
+Swagger UI is available at:
+
+```text
+/api/docs/
+```
+
+OpenAPI schema:
+
+```text
+/api/schema/
+```
+
+ReDoc documentation:
+
+```text
+/api/redoc/
+```
+
+## API Endpoints
+
+Base API prefix:
 
 ```text
 /api/v1/
@@ -179,21 +206,21 @@ PATCH  /api/v1/products/{id}/
 DELETE /api/v1/products/{id}/
 ```
 
-Список товаров поддерживает поиск, фильтрацию, сортировку и cursor pagination.
+Product list supports search, filtering, ordering and cursor pagination.
 
-Доступные query-параметры:
+Available query parameters:
 
 ```text
-search      — поиск по названию и описанию товара
-category    — фильтрация по id категории
-min_price   — минимальная цена
-max_price   — максимальная цена
-ordering    — сортировка: price, -price, created_at, -created_at
-page_size   — размер страницы для пагинации
-cursor      — курсор для перехода к следующей или предыдущей странице
+search      — search by product title or description
+category    — filter by category id
+min_price   — minimum product price
+max_price   — maximum product price
+ordering    — price, -price, created_at, -created_at
+page_size   — custom page size
+cursor      — cursor for next or previous page
 ```
 
-Примеры:
+Examples:
 
 ```text
 /api/v1/products/?search=mug
@@ -203,6 +230,28 @@ cursor      — курсор для перехода к следующей ил�
 /api/v1/products/?page_size=5
 ```
 
+Paginated response example:
+
+```json
+{
+  "next": "http://127.0.0.1:8000/api/v1/products/?cursor=...",
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "title": "Ceramic mug",
+      "description": "Handmade white clay mug.",
+      "price": "1200.00",
+      "quantity": 5,
+      "category": 1,
+      "category_name": "Ceramics",
+      "seller": 2,
+      "seller_username": "seller1",
+      "is_available": true
+    }
+  ]
+}
+```
 
 ### Orders
 
@@ -212,17 +261,15 @@ POST /api/v1/orders/
 GET  /api/v1/orders/{id}/
 ```
 
-## Переменные окружения
+Regular users can see only their own orders. Admin users can see all orders.
 
-Проект использует `.env` для локальных настроек.
+## Environment Variables
 
-Пример находится в файле:
+The project uses environment variables for local configuration.
 
-```text
-.env.example
-```
+Create `.env` in the project root based on `.env.example`.
 
-Пример содержимого:
+Example:
 
 ```env
 SECRET_KEY=your-secret-key-here
@@ -232,103 +279,66 @@ ALLOWED_HOSTS=127.0.0.1,localhost
 DATABASE_URL=postgres://your_db_user:your_db_password@localhost:5432/your_db_name
 ```
 
-Файл `.env` не должен попадать в Git.
+The `.env` file must not be committed to Git.
 
-## Установка и запуск
+## Local Development Setup
 
-### 1. Клонировать репозиторий
+### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
-cd marketplace
+git clone https://github.com/USERNAME/REPOSITORY.git
+cd REPOSITORY
 ```
 
-### 2. Создать виртуальное окружение
+### 2. Create a virtual environment
 
 ```bash
 python -m venv .venv
 ```
 
-### 3. Активировать виртуальное окружение
+### 3. Activate the virtual environment
 
-Для Windows PowerShell:
+Windows PowerShell:
 
 ```powershell
 .\.venv\Scripts\activate
 ```
 
-### 4. Установить зависимости
+Linux / macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+### 4. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 5. Создать `.env`
+### 5. Create `.env`
 
-Создать файл `.env` в корне проекта и заполнить его по примеру `.env.example`.
+Create a `.env` file in the project root and configure it using `.env.example`.
 
-### 6. Применить миграции
+### 6. Apply migrations
 
 ```bash
 python manage.py migrate
 ```
 
-### 7. Создать суперпользователя
+### 7. Create a superuser
 
 ```bash
 python manage.py createsuperuser
 ```
 
-### 8. Запустить сервер
+### 8. Run the development server
 
 ```bash
 python manage.py runserver
 ```
 
-После запуска API будет доступно по адресу:
-
-```text
-http://127.0.0.1:8000/api/v1/
-```
-
-Админ-панель:
-
-```text
-http://127.0.0.1:8000/admin/
-```
-
-## Запуск через Docker
-
-Проект можно запустить через Docker Compose. В этом режиме поднимаются два контейнера:
-
-* `backend` — Django / DRF приложение;
-* `db` — PostgreSQL база данных.
-
-### 1. Создать файл `.env.docker`
-
-В корне проекта создать файл `.env.docker` на основе `.env.docker.example`.
-
-Пример:
-
-```env
-SECRET_KEY=your-docker-secret-key
-DEBUG=True
-ALLOWED_HOSTS=127.0.0.1,localhost,0.0.0.0
-
-DATABASE_URL=postgres://marketplace_user:marketplace_password@db:5432/handmade_marketplace_db
-```
-
-Важно: в Docker-окружении в `DATABASE_URL` используется хост `db`, потому что PostgreSQL запускается в отдельном контейнере с таким именем.
-
-Файл `.env.docker` не должен попадать в Git.
-
-### 2. Собрать и запустить контейнеры
-
-```bash
-docker compose up --build
-```
-
-После запуска backend будет доступен по адресу:
+Application:
 
 ```text
 http://127.0.0.1:8000/
@@ -340,7 +350,7 @@ API:
 http://127.0.0.1:8000/api/v1/
 ```
 
-Swagger-документация:
+Swagger UI:
 
 ```text
 http://127.0.0.1:8000/api/docs/
@@ -352,79 +362,151 @@ Django Admin:
 http://127.0.0.1:8000/admin/
 ```
 
-### 3. Применить миграции внутри контейнера
+## Docker Setup
 
-В отдельном терминале выполнить:
+The project can also be launched with Docker Compose.
+
+Docker Compose starts two services:
+
+* `backend` — Django / DRF application;
+* `db` — PostgreSQL database.
+
+### 1. Create `.env.docker`
+
+Create `.env.docker` in the project root based on `.env.docker.example`.
+
+Example:
+
+```env
+SECRET_KEY=your-docker-secret-key
+DEBUG=True
+ALLOWED_HOSTS=127.0.0.1,localhost,0.0.0.0
+
+DATABASE_URL=postgres://marketplace_user:marketplace_password@db:5432/handmade_marketplace_db
+```
+
+In Docker, the database host is `db`, because PostgreSQL runs in a separate container with that service name.
+
+The `.env.docker` file must not be committed to Git.
+
+### 2. Build and run containers
+
+```bash
+docker compose up --build
+```
+
+### 3. Apply migrations inside the backend container
+
+In a separate terminal:
 
 ```bash
 docker compose exec backend python manage.py migrate
 ```
 
-### 4. Создать суперпользователя
+### 4. Create a superuser inside the Docker database
 
 ```bash
 docker compose exec backend python manage.py createsuperuser
 ```
 
-### 5. Запустить тесты внутри контейнера
+### 5. Run tests inside Docker
 
 ```bash
 docker compose exec backend python manage.py test
 ```
 
-### 6. Остановить контейнеры
+### 6. Stop containers
 
 ```bash
 docker compose down
 ```
 
-### 7. Остановить контейнеры и удалить Docker-базу данных
+### 7. Stop containers and remove Docker database volume
 
 ```bash
 docker compose down -v
 ```
 
-Команда с флагом `-v` удаляет volume PostgreSQL, поэтому все данные из Docker-базы будут потеряны.
+The `-v` flag removes the PostgreSQL volume. All data stored in the Docker database will be deleted.
 
+## Useful Docker Commands
 
-## Запуск тестов
+Check running containers:
+
+```bash
+docker compose ps
+```
+
+View logs:
+
+```bash
+docker compose logs
+```
+
+View backend logs:
+
+```bash
+docker compose logs backend
+```
+
+Enter the backend container:
+
+```bash
+docker compose exec backend sh
+```
+
+Rebuild the backend image:
+
+```bash
+docker compose build backend
+```
+
+## Running Tests
+
+Run tests locally:
 
 ```bash
 python manage.py test
 ```
 
-На текущем этапе проект содержит 23 автоматических API-теста.
+Run tests inside Docker:
 
-Тестами покрыты:
+```bash
+docker compose exec backend python manage.py test
+```
 
-* регистрация пользователей;
-* запрет регистрации с ролью admin через публичный API;
-* создание товаров продавцом;
-* запрет создания товаров покупателем;
-* запрет создания товаров с некорректной ценой;
-* запрет создания доступного товара с нулевым остатком;
-* обновление товара владельцем;
-* запрет обновления чужого товара;
-* поиск товаров;
-* фильтрация товаров по категории;
-* фильтрация товаров по диапазону цены;
-* сортировка товаров;
-* создание заказа покупателем;
-* автоматический расчёт `total_price`;
-* уменьшение `quantity` товара после заказа;
-* перевод товара в `is_available = False` при нулевом остатке;
-* запрет заказа сверх доступного количества;
-* запрет заказа с `quantity = 0`;
-* запрет заказа недоступного товара;
-* запрет создания заказа продавцом;
-* отображение пользователю только своих заказов;
-* отображение всех заказов администратору.
+The project currently includes 23 automated API tests.
 
-Тесты также запускаются автоматически через GitHub Actions при push и pull request в ветку `main`.
+Covered scenarios include:
 
-## Примеры API-запросов
+* user registration;
+* preventing public registration with the admin role;
+* product creation by sellers;
+* preventing product creation by buyers;
+* preventing product creation with invalid price;
+* preventing available products with zero stock;
+* product update by owner;
+* preventing product update by another seller;
+* product search;
+* product filtering by category;
+* product filtering by price range;
+* product ordering;
+* order creation by buyers;
+* backend-side `total_price` calculation;
+* product stock reduction after order creation;
+* automatic product unavailability when stock reaches zero;
+* preventing orders above available stock;
+* preventing orders with `quantity = 0`;
+* preventing orders for unavailable products;
+* preventing sellers from creating orders;
+* showing users only their own orders;
+* showing all orders to admins.
 
-### Регистрация продавца
+Tests are also executed automatically through GitHub Actions on push and pull request to the `main` branch.
+
+## Example Requests
+
+### Register seller
 
 ```json
 {
@@ -435,7 +517,7 @@ python manage.py test
 }
 ```
 
-### Получение JWT-токена
+### Get JWT token
 
 ```json
 {
@@ -444,7 +526,9 @@ python manage.py test
 }
 ```
 
-### Создание товара
+### Create product
+
+Requires seller authentication.
 
 ```json
 {
@@ -456,7 +540,9 @@ python manage.py test
 }
 ```
 
-### Создание заказа
+### Create order
+
+Requires buyer authentication.
 
 ```json
 {
@@ -465,31 +551,62 @@ python manage.py test
 }
 ```
 
-## Особенности реализации
+## Business Logic: Order Creation
 
-Бизнес-логика создания заказа вынесена в сервисный слой `services.py`.
+Order creation is implemented in the service layer.
 
-При создании заказа backend:
+When a buyer creates an order, the backend:
 
-1. Проверяет количество товара.
-2. Проверяет доступность товара.
-3. Блокирует товар на уровне базы данных через `select_for_update()`.
-4. Рассчитывает `total_price`.
-5. Создаёт заказ.
-6. Уменьшает `quantity` товара.
-7. Делает товар недоступным, если количество стало равно нулю.
+1. Validates product availability.
+2. Validates requested quantity.
+3. Locks the product row using `select_for_update()`.
+4. Calculates `total_price` on the backend.
+5. Creates the order.
+6. Decreases product `quantity`.
+7. Sets `is_available = False` when stock reaches zero.
 
-Такой подход отделяет бизнес-логику от HTTP-слоя и делает код проще для тестирования и поддержки.
+This prevents clients from manually controlling order price or corrupting stock data.
 
-## Статус проекта
+## CI
 
-Проект находится в стадии активной разработки как учебный backend pet-project.
+The project uses GitHub Actions to run checks and tests automatically.
 
-Планируемые улучшения:
+Workflow file:
 
-* добавить фильтрацию и поиск товаров;
-* добавить пагинацию;
-* добавить документацию API через Swagger / drf-spectacular;
-* улучшить README примерами curl-запросов;
-* добавить Docker и docker-compose;
-* добавить CI для запуска тестов.
+```text
+.github/workflows/tests.yml
+```
+
+The CI pipeline:
+
+1. Starts PostgreSQL service.
+2. Installs Python dependencies.
+3. Runs Django system checks.
+4. Runs the test suite.
+
+## Project Status
+
+The project is under active development as a backend portfolio project.
+
+Implemented:
+
+* Django REST Framework API;
+* PostgreSQL database integration;
+* JWT authentication;
+* role-based access control;
+* product and order management;
+* service-layer order creation logic;
+* product filtering, search, ordering and cursor pagination;
+* Swagger/OpenAPI documentation;
+* Docker Compose setup;
+* GitHub Actions test workflow;
+* automated API test suite.
+
+Planned improvements:
+
+* advanced product filtering;
+* product image handling improvements;
+* user profile endpoint;
+* order status management;
+* API documentation refinements;
+* production-ready deployment configuration.
