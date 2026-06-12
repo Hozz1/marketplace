@@ -3,6 +3,8 @@ from rest_framework import serializers
 
 from .models import Category, Order, Product, UserProfile
 
+from .roles import get_user_role
+
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -126,6 +128,22 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
 
         return user
+
+
+class UserMeSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            'id',
+            'username',
+            'email',
+            'role',
+        )
+
+    def get_role(self, obj):
+        return get_user_role(obj)
 
 
 class OrderSerializer(serializers.ModelSerializer):

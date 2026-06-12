@@ -77,3 +77,55 @@ class RegisterApiTest(APITestCase):
         self.assertFalse(
             User.objects.filter(username='admin_test').exists()
         )
+
+
+class MeApiTests(APITestCase):
+    def setUp(self):
+        self.buyer = User.objects.create_user(
+            username='buyer_me',
+            email='buyer_me@example.com',
+            password='strongpass123',
+        )
+        UserProfile.objects.create(
+            user=self.buyer,
+            role=UserProfile.Role.BUYER,
+        )
+
+        self.seller = User.objects.create_user(
+            username='seller_me',
+            email='seller_me@example.com',
+            password='strongpass123',
+        )
+        UserProfile.objects.create(
+            user=self.seller,
+            role=UserProfile.Role.SELLER
+        )
+
+    def test_authenticated_user_can_get_own_profile(self):
+        url = reverse('auth-me')
+
+        self.client.force_authenticate(user=self.buyer)
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], self.buyer.id)
+        self.assertEqual(response.data['username'], 'buyer_me')
+        self.assertEqual(response.data['email'], 'buyer_me@example.com')
+        self.assertEqual(response.data['role'], UserProfile.Role.BUYER)
+
+    def test_me_endpoint_return_correct_role_for_seller(self):
+        url = reverse('auth-me')
+
+        self.client.force_authenticate(user=self.seller)
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['username'], 'seller_me')
+        self.assertEqual(response.data['role'], UserProfile.Role.SELLER)
+
+    def test_anonymous_user_cannot_get_me_profile(self):
+        url = reverse('auth-me')
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

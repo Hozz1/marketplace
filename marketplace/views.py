@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from .models import Category, Order, Product, UserProfile
 from .permissions import IsOwnerOrAdmin, IsSeller, IsBuyer
-from .serializers import CategorySerializer, ProductSerializer, RegisterSerializer, OrderSerializer
+from .serializers import CategorySerializer, ProductSerializer, RegisterSerializer, OrderSerializer, UserMeSerializer
 from .services import OrderCreationError, create_order
 
 from .pagination import ProductCursorPagination
@@ -67,6 +67,20 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = (permissions.AllowAny,)
+
+
+@extend_schema(
+    tags=['Auth'],
+    summary='Get current user',
+    description='Returns information about the currently authenticated user.',
+    responses={200: UserMeSerializer},
+)
+class MeView(generics.RetrieveAPIView):
+    serializer_class = UserMeSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_object(self):
+        return self.request.user
 
 @extend_schema_view(
     list=extend_schema(
