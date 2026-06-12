@@ -24,6 +24,7 @@ The project demonstrates practical backend development skills: REST API design, 
 
 * User registration with role-based profiles.
 * JWT authentication with access and refresh tokens.
+* Current authenticated user endpoint.
 * User roles:
 
   * buyer;
@@ -476,11 +477,13 @@ Run tests inside Docker:
 docker compose exec backend python manage.py test
 ```
 
-The project currently includes 23 automated API tests.
+The project currently includes 26 automated API tests.
 
 Covered scenarios include:
 
 * user registration;
+* current authenticated user profile endpoint;
+* preventing anonymous access to the current user endpoint;
 * preventing public registration with the admin role;
 * product creation by sellers;
 * preventing product creation by buyers;
