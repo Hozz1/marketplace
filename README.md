@@ -184,6 +184,7 @@ Base API prefix:
 
 ```text
 POST /api/v1/auth/register/
+GET /api/v1/auth/me/
 POST /api/v1/auth/token/
 POST /api/v1/auth/token/refresh/
 ```
