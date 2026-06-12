@@ -38,6 +38,13 @@ The project demonstrates practical backend development skills: REST API design, 
 * Product ordering by price and creation date.
 * Cursor pagination for product listings.
 * Order creation by buyers.
+* Admin-only order status management.
+* Controlled order status transitions:
+  * `created → paid`;
+  * `created → cancelled`;
+  * `paid → completed`.
+* Product stock restoration when a created order is cancelled.
+
 * Backend-side order total calculation.
 * Automatic product stock reduction after order creation.
 * Automatic product availability update when stock reaches zero.
@@ -258,12 +265,40 @@ Paginated response example:
 ### Orders
 
 ```text
-GET  /api/v1/orders/
-POST /api/v1/orders/
-GET  /api/v1/orders/{id}/
+GET   /api/v1/orders/
+POST  /api/v1/orders/
+GET   /api/v1/orders/{id}/
+PATCH /api/v1/orders/{id}/status/
 ```
 
 Regular users can see only their own orders. Admin users can see all orders.
+
+Order status can be updated only by admin users through a dedicated endpoint:
+
+```text
+PATCH /api/v1/orders/{id}/status/
+```
+
+Request example:
+
+```json
+{
+  "status": "paid"
+}
+```
+
+Allowed status transitions:
+
+```text
+created → paid
+created → cancelled
+paid    → completed
+```
+
+Invalid transitions are rejected with `400 Bad Request`.
+
+When a `created` order is cancelled, the ordered quantity is returned back to the product stock.
+
 
 ## Environment Variables
 
@@ -477,7 +512,7 @@ Run tests inside Docker:
 docker compose exec backend python manage.py test
 ```
 
-The project currently includes 26 automated API tests.
+The project currently includes 31 automated API tests.
 
 Covered scenarios include:
 
@@ -505,6 +540,12 @@ Covered scenarios include:
 * preventing sellers from creating orders;
 * showing users only their own orders;
 * showing all orders to admins.
+* admin order status update;
+* valid order status transitions;
+* preventing buyers from updating order status;
+* preventing invalid order status transitions;
+* restoring product stock when a created order is cancelled.
+
 
 Tests are also executed automatically through GitHub Actions on push and pull request to the `main` branch.
 
