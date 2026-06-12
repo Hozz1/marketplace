@@ -202,3 +202,9 @@ class OrderSerializer(serializers.ModelSerializer):
             )
 
         return attrs
+
+
+class OrderStatusUpdateSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=Order.Status.choices,
+    )

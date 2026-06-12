@@ -3,11 +3,12 @@ from django.db.models import Q
 from rest_framework import generics, mixins, permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
 from .models import Category, Order, Product, UserProfile
-from .permissions import IsOwnerOrAdmin, IsSeller, IsBuyer
-from .serializers import CategorySerializer, ProductSerializer, RegisterSerializer, OrderSerializer, UserMeSerializer
-from .services import OrderCreationError, create_order
+from .permissions import IsOwnerOrAdmin, IsSeller, IsBuyer, IsAdminRole
+from .serializers import CategorySerializer, ProductSerializer, RegisterSerializer, OrderSerializer, UserMeSerializer, OrderStatusUpdateSerializer
+from .services import OrderCreationError, create_order, OrderStatusUpdateError, update_order_status
 
 from .pagination import ProductCursorPagination
 
@@ -265,6 +266,9 @@ class OrderViewSet(
         if self.action == 'create':
             return (IsBuyer(),)
 
+        if self.action == 'update_status':
+            return (IsAdminRole(),)
+
         return (permissions.IsAuthenticated(),)
 
     def create(self, request, *args, **kwargs):
@@ -286,3 +290,37 @@ class OrderViewSet(
             response_serializer.data,
             status=status.HTTP_201_CREATED,
         )
+
+    @extend_schema(
+        tags=['Orders'],
+        summary='Update order status',
+        description=(
+            'Updates order status. Available only for admin users. '
+            'Allowed transitions: created -> paid, created -> cancelled, '
+            'paid -> completed.'
+        ),
+        request=OrderStatusUpdateSerializer,
+        responses={200: OrderSerializer},
+    )
+    @action(
+        detail=True,
+        methods=['patch'],
+        url_path='status',
+    )
+    def update_status(self, request, pk=None):
+        order = self.get_object()
+
+        serializer = OrderStatusUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            updated_order = update_order_status(
+                order=order,
+                new_status=serializer.validated_data['status'],
+            )
+        except OrderStatusUpdateError as error:
+            raise ValidationError(str(error)) from error
+
+        response_serializer = self.get_serializer(updated_order)
+
+        return Response(response_serializer.data)

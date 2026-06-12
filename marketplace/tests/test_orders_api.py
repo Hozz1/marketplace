@@ -229,3 +229,146 @@ class OrderApiTests(APITestCase):
         self.product.refresh_from_db()
         self.assertEqual(self.product.quantity, 5)
         self.assertFalse(self.product.is_available)
+
+    def test_admin_can_update_order_status_from_created_to_paid(self):
+        order = Order.objects.create(
+            buyer=self.buyer,
+            product=self.product,
+            quantity=1,
+            total_price=Decimal('1200.00'),
+        )
+
+        url = reverse('order-update-status', kwargs={'pk': order.pk})
+        payload = {
+            'status': Order.Status.PAID,
+        }
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        order.refresh_from_db()
+
+        self.assertEqual(order.status, Order.Status.PAID)
+        self.assertEqual(response.data['status'], Order.Status.PAID)
+
+    def test_admin_can_complete_paid_order(self):
+        order = Order.objects.create(
+            buyer=self.buyer,
+            product=self.product,
+            quantity=1,
+            total_price=Decimal('1200.00'),
+            status=Order.Status.PAID,
+        )
+
+        url = reverse('order-update-status', kwargs={'pk': order.pk})
+        payload = {
+            'status': Order.Status.COMPLETED,
+        }
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        order.refresh_from_db()
+
+        self.assertEqual(order.status, Order.Status.COMPLETED)
+        self.assertEqual(response.data['status'], Order.Status.COMPLETED)
+
+    def test_buyer_cannot_update_status(self):
+        order = Order.objects.create(
+            buyer=self.buyer,
+            product=self.product,
+            quantity=1,
+            total_price=Decimal('1200.00'),
+        )
+
+        url = reverse(
+            'order-update-status',
+            kwargs={'pk': order.pk},
+        )
+        payload = {
+            'status': Order.Status.PAID,
+        }
+
+        self.client.force_authenticate(user=self.buyer)
+        response = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        order.refresh_from_db()
+
+        self.assertEqual(order.status, Order.Status.CREATED)
+
+    def test_invalid_order_status_transition_returns_bad_request(self):
+        order = Order.objects.create(
+            buyer=self.buyer,
+            product=self.product,
+            quantity=1,
+            total_price=Decimal('1200.00'),
+            status=Order.Status.COMPLETED,
+        )
+
+        url = reverse(
+            'order-update-status',
+            kwargs={'pk': order.pk},
+        )
+        payload = {
+            'status': Order.Status.PAID,
+        }
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        order.refresh_from_db()
+
+        self.assertEqual(order.status, Order.Status.COMPLETED)
+
+    def test_cancelling_created_order_restores_product_quantity(self):
+        create_order_url = reverse('order-list')
+        create_order_payload = {
+            'product': self.product.id,
+            'quantity': 2,
+        }
+
+        self.client.force_authenticate(user=self.buyer)
+        create_response = self.client.post(
+            create_order_url,
+            create_order_payload,
+            format='json',
+        )
+
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+
+        self.product.refresh_from_db()
+
+        self.assertEqual(self.product.quantity, 3)
+
+        order_id = create_response.data['id']
+        update_status_url = reverse(
+            'order-update-status',
+            kwargs={'pk': order_id},
+        )
+        update_status_payload = {
+            'status': Order.Status.CANCELLED,
+        }
+
+        self.client.force_authenticate(user=self.admin)
+        update_response = self.client.patch(
+            update_status_url,
+            update_status_payload,
+            format='json',
+        )
+
+        self.assertEqual(update_response.status_code, status.HTTP_200_OK)
+
+        order = Order.objects.get(id=order_id)
+        self.product.refresh_from_db()
+
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+        self.assertEqual(self.product.quantity, 5)
+        self.assertTrue(self.product.is_available)
